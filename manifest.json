@@ -1,0 +1,49 @@
+{
+  "project": "smiletogether-study",
+  "upstream": "https://github.com/sgdevcamp2025/smiletogether",
+  "baseline_commit": "0fb6a20403efb2af387bade4969436121854f70a",
+  "local_snapshot_commit": "255e86da0d5373afc019bc98b25a989fe5713f38",
+  "published_on": "2026-11-12",
+  "purpose": "팀 프로젝트 종료 후 개인 후속 학습",
+  "ai_assistance": "로컬 변경 일부와 이관·측정 스크립트는 AI의 도움을 받아 작성. 변경과 실행 결과를 검토하며 학습합니다.",
+  "historical_local_commits": [
+    {
+      "sha": "255e86da0d5373afc019bc98b25a989fe5713f38",
+      "date": "2026-10-15",
+      "author": "Codex",
+      "subject": "fix: preserve message tombstones and retry Kafka Mongo writes; bound profile calls",
+      "changedFiles": [
+        "backend/history-server/build.gradle",
+        "backend/history-server/src/main/java/com/smiletogether/historyserver/config/HistoryKafkaContainerConfiguration.java",
+        "backend/history-server/src/main/java/com/smiletogether/historyserver/config/HistoryKafkaRetryConfiguration.java",
+        "backend/history-server/src/main/java/com/smiletogether/historyserver/service/ChannelMessageService.java",
+        "backend/history-server/src/main/java/com/smiletogether/historyserver/service/KafkaConsumerService.java",
+        "backend/history-server/src/test/java/com/smiletogether/historyserver/integration/KafkaMongoIntegrationTest.java",
+        "backend/history-server/src/test/java/com/smiletogether/historyserver/service/BaselineChannelMessageService.java",
+        "backend/history-server/src/test/java/com/smiletogether/historyserver/service/KafkaStorageBoundaryTest.java"
+      ]
+    },
+    {
+      "sha": "273970ebcba70e3d995b80973a2579983a52b77c",
+      "date": "2026-10-15",
+      "author": "Codex",
+      "subject": "test: capture channel partition and history failure boundaries",
+      "changedFiles": [
+        "backend/chat-server/src/test/java/com/smiletogether/chatserver/config/PartitionConfigTest.java",
+        "backend/history-server/src/test/java/com/smiletogether/historyserver/controller/HistoryReadBoundaryTest.java",
+        "backend/history-server/src/test/java/com/smiletogether/historyserver/service/KafkaStorageBoundaryTest.java",
+        "backend/history-server/src/test/java/com/smiletogether/historyserver/util/KafkaLagCheckerTest.java"
+      ]
+    },
+    {
+      "sha": "cd590af195307a5f4ae16b494b327735a75cdd30",
+      "date": "2026-10-15",
+      "author": "Codex",
+      "subject": "fix: handle channel hash overflow and interrupted history waits",
+      "changedFiles": [
+        "backend/chat-server/src/main/java/com/smiletogether/chatserver/config/PartitionConfig.java",
+        "backend/history-server/src/main/java/com/smiletogether/historyserver/util/KafkaLagChecker.java"
+      ]
+    }
+  ]
+}
