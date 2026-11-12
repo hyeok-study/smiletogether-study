@@ -1,0 +1,20 @@
+{
+  "tests": [
+    {
+      "name": "com.smiletogether.historyserver.integration.KafkaMongoIntegrationTest",
+      "tests": "4",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "11.946"
+    }
+  ],
+  "environment": {
+    "java": "21.0.6",
+    "gradle": "8.10.2",
+    "mongo_image": "mongo:7.0",
+    "kafka_image": "apache/kafka:3.9.0",
+    "os": "macOS ARM64",
+    "date": "2026-11-12"
+  }
+}

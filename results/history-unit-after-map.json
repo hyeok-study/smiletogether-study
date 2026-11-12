@@ -1,0 +1,68 @@
+{
+  "tests": [
+    {
+      "name": "com.smiletogether.historyserver.service.ChannelMessageServiceTest",
+      "tests": "2",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.723"
+    },
+    {
+      "name": "com.smiletogether.historyserver.controller.HistoryReadBoundaryTest",
+      "tests": "2",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.076"
+    },
+    {
+      "name": "com.smiletogether.historyserver.service.KafkaStorageBoundaryTest",
+      "tests": "1",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.334"
+    },
+    {
+      "name": "com.smiletogether.historyserver.util.KafkaLagCheckerTest",
+      "tests": "5",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.089"
+    }
+  ],
+  "jacoco": [
+    {
+      "type": "INSTRUCTION",
+      "missed": "1165",
+      "covered": "493"
+    },
+    {
+      "type": "BRANCH",
+      "missed": "33",
+      "covered": "16"
+    },
+    {
+      "type": "LINE",
+      "missed": "281",
+      "covered": "92"
+    },
+    {
+      "type": "COMPLEXITY",
+      "missed": "61",
+      "covered": "26"
+    },
+    {
+      "type": "METHOD",
+      "missed": "40",
+      "covered": "21"
+    },
+    {
+      "type": "CLASS",
+      "missed": "15",
+      "covered": "10"
+    }
+  ]
+}

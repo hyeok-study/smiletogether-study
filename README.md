@@ -25,3 +25,5 @@ python3 scripts/prepare.py
 [실행 범위와 결과](VALIDATION.md), [측정 JSON](results), [이관 파일 해시](inventory.json)를 함께 기록합니다.
 
 [이관 및 기준 측정 이슈](https://github.com/hyeok-study/smiletogether-study/issues/1)
+
+[Map 개선 학습과 통합 측정](MAP-STUDY.md) · [학습 이슈 #3](https://github.com/hyeok-study/smiletogether-study/issues/3)

@@ -1,0 +1,7 @@
+{
+  "tests": 2,
+  "failures": 1,
+  "failed": [
+    "getChannelMessagesLoadsProfileOnceForRepeatedSenderEvenWhenProfileCallFails()"
+  ]
+}

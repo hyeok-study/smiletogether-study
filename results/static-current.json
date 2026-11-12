@@ -1,8 +1,8 @@
 {
   "definition": "Production source files; fan-in/out counts distinct statically resolved internal file imports, not runtime calls. Java wildcard imports, DI wiring, reflection and unresolved TS aliases are not resolved. Cycles cover this graph only. Source lines approximate nonblank noncomment lines, not a quality score.",
-  "source_sha256": "8a8a4457afad4f6b289754b3c4ac7cdad4319099d2c63a6f94450bdb121ec3be",
+  "source_sha256": "791842899a41cffd822216f7a282ec253bcf8513aa51f80fdfa299b108b6df55",
   "files": 147,
-  "approx_source_lines": 5148,
+  "approx_source_lines": 5150,
   "internal_edges": 171,
   "unresolved_local_imports": 17,
   "cycle_count": 0,
