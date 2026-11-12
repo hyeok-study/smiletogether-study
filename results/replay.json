@@ -1,0 +1,9 @@
+{
+  "project": "smiletogether-study",
+  "baseline": "0fb6a20403efb2af387bade4969436121854f70a",
+  "patches_checked": [
+    "001-local-followup.patch",
+    "002-portable-integration-output.patch"
+  ],
+  "status": "applied successfully"
+}
