@@ -1,0 +1,55 @@
+{
+  "scope": "HistoryReadBoundaryTest, KafkaStorageBoundaryTest, KafkaLagCheckerTest only; full context test failed missing external-api.space-server; integration tests not enabled in this run",
+  "tests": [
+    {
+      "name": "com.smiletogether.historyserver.controller.HistoryReadBoundaryTest",
+      "tests": "2",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.661"
+    },
+    {
+      "name": "com.smiletogether.historyserver.service.KafkaStorageBoundaryTest",
+      "tests": "1",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.424"
+    },
+    {
+      "name": "com.smiletogether.historyserver.util.KafkaLagCheckerTest",
+      "tests": "5",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.113"
+    }
+  ],
+  "jacoco": {
+    "INSTRUCTION": {
+      "covered": 255,
+      "missed": 1398
+    },
+    "BRANCH": {
+      "covered": 11,
+      "missed": 36
+    },
+    "LINE": {
+      "covered": 49,
+      "missed": 323
+    },
+    "COMPLEXITY": {
+      "covered": 13,
+      "missed": 74
+    },
+    "METHOD": {
+      "covered": 10,
+      "missed": 52
+    },
+    "CLASS": {
+      "covered": 5,
+      "missed": 20
+    }
+  }
+}

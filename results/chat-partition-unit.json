@@ -1,0 +1,13 @@
+{
+  "tests": [
+    {
+      "name": "com.smiletogether.chatserver.config.PartitionConfigTest",
+      "tests": "2",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.469"
+    }
+  ],
+  "scope": "PartitionConfigTest only"
+}

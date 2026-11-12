@@ -1,0 +1,851 @@
+{
+  "definition": "Production source files; fan-in/out counts distinct statically resolved internal file imports, not runtime calls. Java wildcard imports, DI wiring, reflection and unresolved TS aliases are not resolved. Cycles cover this graph only. Source lines approximate nonblank noncomment lines, not a quality score.",
+  "source_sha256": "8a8a4457afad4f6b289754b3c4ac7cdad4319099d2c63a6f94450bdb121ec3be",
+  "files": 147,
+  "approx_source_lines": 5148,
+  "internal_edges": 171,
+  "unresolved_local_imports": 17,
+  "cycle_count": 0,
+  "cycles": [],
+  "top_fan_in": [
+    {
+      "file": "chat-server/src/main/java/com/smiletogether/chatserver/dto/ChannelMessageDeleteDto.java",
+      "fan_in": 4,
+      "fan_out": 0
+    },
+    {
+      "file": "chat-server/src/main/java/com/smiletogether/chatserver/dto/ChannelMessageDto.java",
+      "fan_in": 4,
+      "fan_out": 0
+    },
+    {
+      "file": "chat-server/src/main/java/com/smiletogether/chatserver/dto/ChannelMessageReactionDto.java",
+      "fan_in": 4,
+      "fan_out": 0
+    },
+    {
+      "file": "chat-server/src/main/java/com/smiletogether/chatserver/dto/ChannelMessageUpdateDto.java",
+      "fan_in": 4,
+      "fan_out": 1
+    },
+    {
+      "file": "chat-server/src/main/java/com/smiletogether/chatserver/dto/WorkspaceProfileDto.java",
+      "fan_in": 4,
+      "fan_out": 1
+    },
+    {
+      "file": "history-server/src/main/java/com/smiletogether/historyserver/domain/document/ChannelMessageDocument.java",
+      "fan_in": 4,
+      "fan_out": 1
+    },
+    {
+      "file": "history-server/src/main/java/com/smiletogether/historyserver/service/dto/WorkspaceProfileDto.java",
+      "fan_in": 4,
+      "fan_out": 1
+    },
+    {
+      "file": "member-server/src/main/java/com/smiletoegether/memberserver/member/domain/Member.java",
+      "fan_in": 4,
+      "fan_out": 0
+    },
+    {
+      "file": "chat-server/src/main/java/com/smiletogether/chatserver/dto/request/ChannelMessageDeleteRequest.java",
+      "fan_in": 3,
+      "fan_out": 0
+    },
+    {
+      "file": "chat-server/src/main/java/com/smiletogether/chatserver/dto/request/ChannelMessageUpdateRequest.java",
+      "fan_in": 3,
+      "fan_out": 0
+    }
+  ],
+  "top_fan_out": [
+    {
+      "file": "history-server/src/main/java/com/smiletogether/historyserver/service/ChannelMessageService.java",
+      "fan_in": 1,
+      "fan_out": 14
+    },
+    {
+      "file": "member-server/src/main/java/com/smiletoegether/memberserver/member/controller/MemberController.java",
+      "fan_in": 0,
+      "fan_out": 12
+    },
+    {
+      "file": "chat-server/src/main/java/com/smiletogether/chatserver/service/ChatService.java",
+      "fan_in": 1,
+      "fan_out": 10
+    },
+    {
+      "file": "member-server/src/main/java/com/smiletoegether/memberserver/member/service/MemberService.java",
+      "fan_in": 1,
+      "fan_out": 10
+    },
+    {
+      "file": "notification-server/src/main/java/com/smiletogether/notificationserver/service/NotificationService.java",
+      "fan_in": 2,
+      "fan_out": 8
+    },
+    {
+      "file": "chat-server/src/main/java/com/smiletogether/chatserver/controller/ChannelChatController.java",
+      "fan_in": 0,
+      "fan_out": 7
+    },
+    {
+      "file": "space-server/src/workspace/workspace.controller.ts",
+      "fan_in": 1,
+      "fan_out": 7
+    },
+    {
+      "file": "chat-server/src/main/java/com/smiletogether/chatserver/service/consumer/MessageConsumer.java",
+      "fan_in": 0,
+      "fan_out": 6
+    },
+    {
+      "file": "history-server/src/main/java/com/smiletogether/historyserver/controller/ChannelMessageController.java",
+      "fan_in": 0,
+      "fan_out": 6
+    },
+    {
+      "file": "space-server/src/app.module.ts",
+      "fan_in": 1,
+      "fan_out": 6
+    }
+  ],
+  "file_metrics": [
+    {
+      "file": "auth-server/.eslintrc.js",
+      "fan_in": 0,
+      "fan_out": 0
+    },
+    {
+      "file": "auth-server/src/app.controller.ts",
+      "fan_in": 1,
+      "fan_out": 1
+    },
+    {
+      "file": "auth-server/src/app.module.ts",
+      "fan_in": 1,
+      "fan_out": 3
+    },
+    {
+      "file": "auth-server/src/app.service.ts",
+      "fan_in": 2,
+      "fan_out": 0
+    },
+    {
+      "file": "auth-server/src/auth/auth.controller.ts",
+      "fan_in": 1,
+      "fan_out": 1
+    },
+    {
+      "file": "auth-server/src/auth/auth.module.ts",
+      "fan_in": 1,
+      "fan_out": 2
+    },
+    {
+      "file": "auth-server/src/auth/auth.service.ts",
+      "fan_in": 2,
+      "fan_out": 0
+    },
+    {
+      "file": "auth-server/src/main.ts",
+      "fan_in": 0,
+      "fan_out": 1
+    },
+    {
+      "file": "chat-server/src/main/java/com/smiletogether/chatserver/ChatServerApplication.java",
+      "fan_in": 0,
+      "fan_out": 0
+    },
+    {
+      "file": "chat-server/src/main/java/com/smiletogether/chatserver/config/ChatConfig.java",
+      "fan_in": 0,
+      "fan_out": 1
+    },
+    {
+      "file": "chat-server/src/main/java/com/smiletogether/chatserver/config/JacksonConfig.java",
+      "fan_in": 0,
+      "fan_out": 0
+    },
+    {
+      "file": "chat-server/src/main/java/com/smiletogether/chatserver/config/KafkaConfig.java",
+      "fan_in": 0,
+      "fan_out": 0
+    },
+    {
+      "file": "chat-server/src/main/java/com/smiletogether/chatserver/config/PartitionConfig.java",
+      "fan_in": 0,
+      "fan_out": 0
+    },
+    {
+      "file": "chat-server/src/main/java/com/smiletogether/chatserver/config/RestTemplateConfig.java",
+      "fan_in": 0,
+      "fan_out": 0
+    },
+    {
+      "file": "chat-server/src/main/java/com/smiletogether/chatserver/config/WebConfig.java",
+      "fan_in": 0,
+      "fan_out": 0
+    },
+    {
+      "file": "chat-server/src/main/java/com/smiletogether/chatserver/controller/ChannelChatController.java",
+      "fan_in": 0,
+      "fan_out": 7
+    },
+    {
+      "file": "chat-server/src/main/java/com/smiletogether/chatserver/controller/interceptor/FilterChannelInterceptor.java",
+      "fan_in": 1,
+      "fan_out": 0
+    },
+    {
+      "file": "chat-server/src/main/java/com/smiletogether/chatserver/dto/ChannelMessageDeleteDto.java",
+      "fan_in": 4,
+      "fan_out": 0
+    },
+    {
+      "file": "chat-server/src/main/java/com/smiletogether/chatserver/dto/ChannelMessageDto.java",
+      "fan_in": 4,
+      "fan_out": 0
+    },
+    {
+      "file": "chat-server/src/main/java/com/smiletogether/chatserver/dto/ChannelMessageReactionDto.java",
+      "fan_in": 4,
+      "fan_out": 0
+    },
+    {
+      "file": "chat-server/src/main/java/com/smiletogether/chatserver/dto/ChannelMessageUpdateDto.java",
+      "fan_in": 4,
+      "fan_out": 1
+    },
+    {
+      "file": "chat-server/src/main/java/com/smiletogether/chatserver/dto/WorkspaceProfileDto.java",
+      "fan_in": 4,
+      "fan_out": 1
+    },
+    {
+      "file": "chat-server/src/main/java/com/smiletogether/chatserver/dto/request/ChannelMessageDeleteRequest.java",
+      "fan_in": 3,
+      "fan_out": 0
+    },
+    {
+      "file": "chat-server/src/main/java/com/smiletogether/chatserver/dto/request/ChannelMessageRequest.java",
+      "fan_in": 2,
+      "fan_out": 0
+    },
+    {
+      "file": "chat-server/src/main/java/com/smiletogether/chatserver/dto/request/ChannelMessageUpdateKafkaRequest.java",
+      "fan_in": 2,
+      "fan_out": 0
+    },
+    {
+      "file": "chat-server/src/main/java/com/smiletogether/chatserver/dto/request/ChannelMessageUpdateRequest.java",
+      "fan_in": 3,
+      "fan_out": 0
+    },
+    {
+      "file": "chat-server/src/main/java/com/smiletogether/chatserver/dto/response/ChannelMessageDeleteResponse.java",
+      "fan_in": 1,
+      "fan_out": 1
+    },
+    {
+      "file": "chat-server/src/main/java/com/smiletogether/chatserver/dto/response/ChannelMessageResponse.java",
+      "fan_in": 1,
+      "fan_out": 2
+    },
+    {
+      "file": "chat-server/src/main/java/com/smiletogether/chatserver/dto/response/ChannelMessageUpdateResponse.java",
+      "fan_in": 1,
+      "fan_out": 2
+    },
+    {
+      "file": "chat-server/src/main/java/com/smiletogether/chatserver/infrastructure/ExternalProfileApiClient.java",
+      "fan_in": 1,
+      "fan_out": 1
+    },
+    {
+      "file": "chat-server/src/main/java/com/smiletogether/chatserver/infrastructure/ExternalProfileResponse.java",
+      "fan_in": 1,
+      "fan_out": 0
+    },
+    {
+      "file": "chat-server/src/main/java/com/smiletogether/chatserver/infrastructure/JwtExtractor.java",
+      "fan_in": 1,
+      "fan_out": 0
+    },
+    {
+      "file": "chat-server/src/main/java/com/smiletogether/chatserver/service/ChatService.java",
+      "fan_in": 1,
+      "fan_out": 10
+    },
+    {
+      "file": "chat-server/src/main/java/com/smiletogether/chatserver/service/EmojiService.java",
+      "fan_in": 1,
+      "fan_out": 2
+    },
+    {
+      "file": "chat-server/src/main/java/com/smiletogether/chatserver/service/consumer/EmojiConsumer.java",
+      "fan_in": 0,
+      "fan_out": 1
+    },
+    {
+      "file": "chat-server/src/main/java/com/smiletogether/chatserver/service/consumer/MessageConsumer.java",
+      "fan_in": 0,
+      "fan_out": 6
+    },
+    {
+      "file": "chat-server/src/main/java/com/smiletogether/chatserver/service/producer/EmojiProducer.java",
+      "fan_in": 1,
+      "fan_out": 1
+    },
+    {
+      "file": "chat-server/src/main/java/com/smiletogether/chatserver/service/producer/MessageProducer.java",
+      "fan_in": 1,
+      "fan_out": 5
+    },
+    {
+      "file": "config-server/src/main/java/com/slack/configserver/ConfigServerApplication.java",
+      "fan_in": 0,
+      "fan_out": 0
+    },
+    {
+      "file": "discovery-server/src/main/java/com/slack/discoveryserver/DiscoveryServerApplication.java",
+      "fan_in": 0,
+      "fan_out": 0
+    },
+    {
+      "file": "gateway-server/src/main/java/com/slack/gatewayserver/GatewayServerApplication.java",
+      "fan_in": 0,
+      "fan_out": 0
+    },
+    {
+      "file": "history-server/src/main/java/com/smiletogether/historyserver/HistoryServerApplication.java",
+      "fan_in": 0,
+      "fan_out": 0
+    },
+    {
+      "file": "history-server/src/main/java/com/smiletogether/historyserver/config/HistoryKafkaContainerConfiguration.java",
+      "fan_in": 0,
+      "fan_out": 0
+    },
+    {
+      "file": "history-server/src/main/java/com/smiletogether/historyserver/config/HistoryKafkaRetryConfiguration.java",
+      "fan_in": 0,
+      "fan_out": 0
+    },
+    {
+      "file": "history-server/src/main/java/com/smiletogether/historyserver/config/RestTemplateConfig.java",
+      "fan_in": 0,
+      "fan_out": 0
+    },
+    {
+      "file": "history-server/src/main/java/com/smiletogether/historyserver/config/WebConfig.java",
+      "fan_in": 0,
+      "fan_out": 0
+    },
+    {
+      "file": "history-server/src/main/java/com/smiletogether/historyserver/controller/ChannelMessageController.java",
+      "fan_in": 0,
+      "fan_out": 6
+    },
+    {
+      "file": "history-server/src/main/java/com/smiletogether/historyserver/domain/document/ChannelMessageDocument.java",
+      "fan_in": 4,
+      "fan_out": 1
+    },
+    {
+      "file": "history-server/src/main/java/com/smiletogether/historyserver/domain/document/ReactionDocument.java",
+      "fan_in": 2,
+      "fan_out": 0
+    },
+    {
+      "file": "history-server/src/main/java/com/smiletogether/historyserver/domain/document/TreadDocument.java",
+      "fan_in": 0,
+      "fan_out": 0
+    },
+    {
+      "file": "history-server/src/main/java/com/smiletogether/historyserver/domain/entity/ChannelMessage.java",
+      "fan_in": 0,
+      "fan_out": 0
+    },
+    {
+      "file": "history-server/src/main/java/com/smiletogether/historyserver/domain/model/Reactions.java",
+      "fan_in": 3,
+      "fan_out": 0
+    },
+    {
+      "file": "history-server/src/main/java/com/smiletogether/historyserver/infrastructure/ExternalProfileApiClient.java",
+      "fan_in": 1,
+      "fan_out": 1
+    },
+    {
+      "file": "history-server/src/main/java/com/smiletogether/historyserver/infrastructure/ExternalProfileResponse.java",
+      "fan_in": 2,
+      "fan_out": 0
+    },
+    {
+      "file": "history-server/src/main/java/com/smiletogether/historyserver/infrastructure/JwtExtractor.java",
+      "fan_in": 1,
+      "fan_out": 0
+    },
+    {
+      "file": "history-server/src/main/java/com/smiletogether/historyserver/intializer/MongoDBSeeder.java",
+      "fan_in": 0,
+      "fan_out": 2
+    },
+    {
+      "file": "history-server/src/main/java/com/smiletogether/historyserver/repository/ChannelMessageRepository.java",
+      "fan_in": 2,
+      "fan_out": 1
+    },
+    {
+      "file": "history-server/src/main/java/com/smiletogether/historyserver/repository/ReactionRepository.java",
+      "fan_in": 1,
+      "fan_out": 1
+    },
+    {
+      "file": "history-server/src/main/java/com/smiletogether/historyserver/service/ChannelMessageService.java",
+      "fan_in": 1,
+      "fan_out": 14
+    },
+    {
+      "file": "history-server/src/main/java/com/smiletogether/historyserver/service/KafkaConsumerService.java",
+      "fan_in": 0,
+      "fan_out": 4
+    },
+    {
+      "file": "history-server/src/main/java/com/smiletogether/historyserver/service/dto/ChannelMessageReaction.java",
+      "fan_in": 2,
+      "fan_out": 0
+    },
+    {
+      "file": "history-server/src/main/java/com/smiletogether/historyserver/service/dto/ChannelMessages.java",
+      "fan_in": 2,
+      "fan_out": 1
+    },
+    {
+      "file": "history-server/src/main/java/com/smiletogether/historyserver/service/dto/WorkspaceProfileDto.java",
+      "fan_in": 4,
+      "fan_out": 1
+    },
+    {
+      "file": "history-server/src/main/java/com/smiletogether/historyserver/service/dto/request/ChannelMessageDeleteRequest.java",
+      "fan_in": 2,
+      "fan_out": 0
+    },
+    {
+      "file": "history-server/src/main/java/com/smiletogether/historyserver/service/dto/request/ChannelMessageSaveRequest.java",
+      "fan_in": 2,
+      "fan_out": 1
+    },
+    {
+      "file": "history-server/src/main/java/com/smiletogether/historyserver/service/dto/request/ChannelMessageUpdateRequest.java",
+      "fan_in": 2,
+      "fan_out": 0
+    },
+    {
+      "file": "history-server/src/main/java/com/smiletogether/historyserver/service/dto/request/ChannelMessagesRequest.java",
+      "fan_in": 2,
+      "fan_out": 0
+    },
+    {
+      "file": "history-server/src/main/java/com/smiletogether/historyserver/service/dto/response/ChannelMessageDeleteResponse.java",
+      "fan_in": 0,
+      "fan_out": 0
+    },
+    {
+      "file": "history-server/src/main/java/com/smiletogether/historyserver/service/dto/response/ChannelMessageResponse.java",
+      "fan_in": 3,
+      "fan_out": 4
+    },
+    {
+      "file": "history-server/src/main/java/com/smiletogether/historyserver/util/KafkaLagChecker.java",
+      "fan_in": 1,
+      "fan_out": 0
+    },
+    {
+      "file": "member-server/src/main/java/com/smiletoegether/memberserver/MemberServerApplication.java",
+      "fan_in": 0,
+      "fan_out": 0
+    },
+    {
+      "file": "member-server/src/main/java/com/smiletoegether/memberserver/common/config/WebConfig.java",
+      "fan_in": 0,
+      "fan_out": 0
+    },
+    {
+      "file": "member-server/src/main/java/com/smiletoegether/memberserver/common/dto/CommonCodeResponse.java",
+      "fan_in": 3,
+      "fan_out": 0
+    },
+    {
+      "file": "member-server/src/main/java/com/smiletoegether/memberserver/email/config/EmailConfig.java",
+      "fan_in": 0,
+      "fan_out": 0
+    },
+    {
+      "file": "member-server/src/main/java/com/smiletoegether/memberserver/email/config/RedisConfig.java",
+      "fan_in": 0,
+      "fan_out": 0
+    },
+    {
+      "file": "member-server/src/main/java/com/smiletoegether/memberserver/email/service/EmailCodeService.java",
+      "fan_in": 1,
+      "fan_out": 0
+    },
+    {
+      "file": "member-server/src/main/java/com/smiletoegether/memberserver/email/service/InviteEmailService.java",
+      "fan_in": 1,
+      "fan_out": 0
+    },
+    {
+      "file": "member-server/src/main/java/com/smiletoegether/memberserver/member/config/RestTemplateConfig.java",
+      "fan_in": 0,
+      "fan_out": 0
+    },
+    {
+      "file": "member-server/src/main/java/com/smiletoegether/memberserver/member/controller/MemberController.java",
+      "fan_in": 0,
+      "fan_out": 12
+    },
+    {
+      "file": "member-server/src/main/java/com/smiletoegether/memberserver/member/domain/Member.java",
+      "fan_in": 4,
+      "fan_out": 0
+    },
+    {
+      "file": "member-server/src/main/java/com/smiletoegether/memberserver/member/infrastructure/ExternalAuthApiServer.java",
+      "fan_in": 1,
+      "fan_out": 1
+    },
+    {
+      "file": "member-server/src/main/java/com/smiletoegether/memberserver/member/infrastructure/ExternalTokenRequest.java",
+      "fan_in": 0,
+      "fan_out": 0
+    },
+    {
+      "file": "member-server/src/main/java/com/smiletoegether/memberserver/member/infrastructure/ExternalTokenResponse.java",
+      "fan_in": 0,
+      "fan_out": 0
+    },
+    {
+      "file": "member-server/src/main/java/com/smiletoegether/memberserver/member/repository/MemberRepository.java",
+      "fan_in": 1,
+      "fan_out": 1
+    },
+    {
+      "file": "member-server/src/main/java/com/smiletoegether/memberserver/member/service/MemberService.java",
+      "fan_in": 1,
+      "fan_out": 10
+    },
+    {
+      "file": "member-server/src/main/java/com/smiletoegether/memberserver/member/service/dto/CertificationEmailRequest.java",
+      "fan_in": 2,
+      "fan_out": 0
+    },
+    {
+      "file": "member-server/src/main/java/com/smiletoegether/memberserver/member/service/dto/SignInRequest.java",
+      "fan_in": 1,
+      "fan_out": 0
+    },
+    {
+      "file": "member-server/src/main/java/com/smiletoegether/memberserver/member/service/dto/SignUpRequest.java",
+      "fan_in": 2,
+      "fan_out": 0
+    },
+    {
+      "file": "member-server/src/main/java/com/smiletoegether/memberserver/member/service/dto/TokenResponse.java",
+      "fan_in": 2,
+      "fan_out": 0
+    },
+    {
+      "file": "member-server/src/main/java/com/smiletoegether/memberserver/member/service/dto/response/CheckMemberIdResponse.java",
+      "fan_in": 1,
+      "fan_out": 0
+    },
+    {
+      "file": "member-server/src/main/java/com/smiletoegether/memberserver/member/service/dto/response/IdentifyEmailResponse.java",
+      "fan_in": 1,
+      "fan_out": 0
+    },
+    {
+      "file": "member-server/src/main/java/com/smiletoegether/memberserver/member/service/dto/response/IdentifyUserNameResponse.java",
+      "fan_in": 1,
+      "fan_out": 0
+    },
+    {
+      "file": "member-server/src/main/java/com/smiletoegether/memberserver/member/service/dto/response/InviteUrlEmailResponse.java",
+      "fan_in": 1,
+      "fan_out": 0
+    },
+    {
+      "file": "member-server/src/main/java/com/smiletoegether/memberserver/member/service/dto/response/SignInResponse.java",
+      "fan_in": 2,
+      "fan_out": 2
+    },
+    {
+      "file": "member-server/src/main/java/com/smiletoegether/memberserver/member/service/dto/response/SignUpResponse.java",
+      "fan_in": 2,
+      "fan_out": 1
+    },
+    {
+      "file": "notification-server/src/main/java/com/smiletogether/notificationserver/NotificationServerApplication.java",
+      "fan_in": 0,
+      "fan_out": 0
+    },
+    {
+      "file": "notification-server/src/main/java/com/smiletogether/notificationserver/config/RestTemplateConfig.java",
+      "fan_in": 0,
+      "fan_out": 0
+    },
+    {
+      "file": "notification-server/src/main/java/com/smiletogether/notificationserver/config/SecurityConfig.java",
+      "fan_in": 0,
+      "fan_out": 0
+    },
+    {
+      "file": "notification-server/src/main/java/com/smiletogether/notificationserver/config/WebConfig.java",
+      "fan_in": 0,
+      "fan_out": 0
+    },
+    {
+      "file": "notification-server/src/main/java/com/smiletogether/notificationserver/controller/NotificationController.java",
+      "fan_in": 0,
+      "fan_out": 5
+    },
+    {
+      "file": "notification-server/src/main/java/com/smiletogether/notificationserver/domain/NotificationDocument.java",
+      "fan_in": 0,
+      "fan_out": 0
+    },
+    {
+      "file": "notification-server/src/main/java/com/smiletogether/notificationserver/domain/NotificationPushSubscription.java",
+      "fan_in": 2,
+      "fan_out": 1
+    },
+    {
+      "file": "notification-server/src/main/java/com/smiletogether/notificationserver/domain/NotificationType.java",
+      "fan_in": 0,
+      "fan_out": 0
+    },
+    {
+      "file": "notification-server/src/main/java/com/smiletogether/notificationserver/domain/PushSubscriptionId.java",
+      "fan_in": 1,
+      "fan_out": 0
+    },
+    {
+      "file": "notification-server/src/main/java/com/smiletogether/notificationserver/infrastructure/SpaceServerApiClient.java",
+      "fan_in": 1,
+      "fan_out": 0
+    },
+    {
+      "file": "notification-server/src/main/java/com/smiletogether/notificationserver/repository/NotificationPushSubscriptionRepository.java",
+      "fan_in": 1,
+      "fan_out": 1
+    },
+    {
+      "file": "notification-server/src/main/java/com/smiletogether/notificationserver/service/NotificationService.java",
+      "fan_in": 2,
+      "fan_out": 8
+    },
+    {
+      "file": "notification-server/src/main/java/com/smiletogether/notificationserver/service/consumer/NotificationConsumer.java",
+      "fan_in": 0,
+      "fan_out": 2
+    },
+    {
+      "file": "notification-server/src/main/java/com/smiletogether/notificationserver/service/dto/ChatNotificationPushMessageRequest.java",
+      "fan_in": 2,
+      "fan_out": 0
+    },
+    {
+      "file": "notification-server/src/main/java/com/smiletogether/notificationserver/service/dto/CommonResponse.java",
+      "fan_in": 2,
+      "fan_out": 0
+    },
+    {
+      "file": "notification-server/src/main/java/com/smiletogether/notificationserver/service/dto/FirebaseMessageDto.java",
+      "fan_in": 1,
+      "fan_out": 0
+    },
+    {
+      "file": "notification-server/src/main/java/com/smiletogether/notificationserver/service/dto/FirebaseMessagingSendDto.java",
+      "fan_in": 0,
+      "fan_out": 0
+    },
+    {
+      "file": "notification-server/src/main/java/com/smiletogether/notificationserver/service/dto/NotificationPushSubscriptionRequest.java",
+      "fan_in": 2,
+      "fan_out": 0
+    },
+    {
+      "file": "notification-server/src/main/java/com/smiletogether/notificationserver/service/fcm/FirebaseMessagingService.java",
+      "fan_in": 2,
+      "fan_out": 1
+    },
+    {
+      "file": "notification-server/src/main/java/com/smiletogether/notificationserver/service/fcm/FirebaseTokenService.java",
+      "fan_in": 2,
+      "fan_out": 0
+    },
+    {
+      "file": "space-server/.eslintrc.js",
+      "fan_in": 0,
+      "fan_out": 0
+    },
+    {
+      "file": "space-server/prisma/prisma.module.ts",
+      "fan_in": 0,
+      "fan_out": 1
+    },
+    {
+      "file": "space-server/prisma/prisma.service.ts",
+      "fan_in": 1,
+      "fan_out": 0
+    },
+    {
+      "file": "space-server/src/app.controller.ts",
+      "fan_in": 1,
+      "fan_out": 1
+    },
+    {
+      "file": "space-server/src/app.module.ts",
+      "fan_in": 1,
+      "fan_out": 6
+    },
+    {
+      "file": "space-server/src/app.service.ts",
+      "fan_in": 2,
+      "fan_out": 0
+    },
+    {
+      "file": "space-server/src/channel/channel.controller.ts",
+      "fan_in": 1,
+      "fan_out": 5
+    },
+    {
+      "file": "space-server/src/channel/channel.module.ts",
+      "fan_in": 1,
+      "fan_out": 2
+    },
+    {
+      "file": "space-server/src/channel/channel.service.ts",
+      "fan_in": 2,
+      "fan_out": 4
+    },
+    {
+      "file": "space-server/src/channel/dto/channel-detail.dto.ts",
+      "fan_in": 2,
+      "fan_out": 0
+    },
+    {
+      "file": "space-server/src/channel/dto/channel-response.dto.ts",
+      "fan_in": 2,
+      "fan_out": 0
+    },
+    {
+      "file": "space-server/src/channel/dto/create-channel.dto.ts",
+      "fan_in": 2,
+      "fan_out": 0
+    },
+    {
+      "file": "space-server/src/channel/dto/workspace-channel.dto.ts",
+      "fan_in": 2,
+      "fan_out": 0
+    },
+    {
+      "file": "space-server/src/common/PrismaExceptionFilter.ts",
+      "fan_in": 1,
+      "fan_out": 0
+    },
+    {
+      "file": "space-server/src/common/dto/profile-response.dto.ts",
+      "fan_in": 0,
+      "fan_out": 0
+    },
+    {
+      "file": "space-server/src/decorators/user-id.decorator.ts",
+      "fan_in": 0,
+      "fan_out": 0
+    },
+    {
+      "file": "space-server/src/external-api/external-api.module.ts",
+      "fan_in": 1,
+      "fan_out": 1
+    },
+    {
+      "file": "space-server/src/external-api/external-api.service.ts",
+      "fan_in": 1,
+      "fan_out": 0
+    },
+    {
+      "file": "space-server/src/guards/auth.guard.ts",
+      "fan_in": 0,
+      "fan_out": 0
+    },
+    {
+      "file": "space-server/src/invite/invite.controller.ts",
+      "fan_in": 1,
+      "fan_out": 1
+    },
+    {
+      "file": "space-server/src/invite/invite.module.ts",
+      "fan_in": 1,
+      "fan_out": 2
+    },
+    {
+      "file": "space-server/src/invite/invite.service.ts",
+      "fan_in": 2,
+      "fan_out": 0
+    },
+    {
+      "file": "space-server/src/main.ts",
+      "fan_in": 0,
+      "fan_out": 2
+    },
+    {
+      "file": "space-server/src/workspace/dto/create-workspace.dto.ts",
+      "fan_in": 2,
+      "fan_out": 0
+    },
+    {
+      "file": "space-server/src/workspace/dto/delete-workspace.dto.ts",
+      "fan_in": 2,
+      "fan_out": 0
+    },
+    {
+      "file": "space-server/src/workspace/dto/invite-workspace.dto.ts",
+      "fan_in": 2,
+      "fan_out": 0
+    },
+    {
+      "file": "space-server/src/workspace/dto/search-workspace.dto.ts",
+      "fan_in": 2,
+      "fan_out": 0
+    },
+    {
+      "file": "space-server/src/workspace/dto/workspace-detail.dto.ts",
+      "fan_in": 2,
+      "fan_out": 0
+    },
+    {
+      "file": "space-server/src/workspace/dto/workspcae-response.dto.ts",
+      "fan_in": 2,
+      "fan_out": 0
+    },
+    {
+      "file": "space-server/src/workspace/workspace.controller.ts",
+      "fan_in": 1,
+      "fan_out": 7
+    },
+    {
+      "file": "space-server/src/workspace/workspace.module.ts",
+      "fan_in": 1,
+      "fan_out": 2
+    },
+    {
+      "file": "space-server/src/workspace/workspace.service.ts",
+      "fan_in": 2,
+      "fan_out": 6
+    }
+  ]
+}

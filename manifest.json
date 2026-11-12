@@ -45,5 +45,7 @@
         "backend/history-server/src/main/java/com/smiletogether/historyserver/util/KafkaLagChecker.java"
       ]
     }
-  ]
+  ],
+  "static_metrics_scope": "backend",
+  "metrics_tool_sha256": "e276f896b186080e66964e386847275e7a4b5cd2fa2412f8b4e23d94e664a3b6"
 }

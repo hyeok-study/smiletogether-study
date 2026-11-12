@@ -1,0 +1,62 @@
+[
+  {
+    "path": "patches/002-portable-integration-output.patch",
+    "sha256": "67686e816933f4fa2929d1be172b87675f56c48c873affa363d1a1aff2d23f07"
+  },
+  {
+    "path": "patches/001-local-followup.patch",
+    "sha256": "a0f2c44a98e7aa90eb0bf0ad37413426ea6b2193a01ddc9cb4fd420bf136c7e9"
+  },
+  {
+    "path": "archive/local-source/scripts/testing/compare-results.js",
+    "sha256": "5d46b56adbe9ae6858a7f7ad35a92b0b6e6fe192c6097610b4481a31392dcaf1"
+  },
+  {
+    "path": "archive/local-source/scripts/testing/run-load-test.sh",
+    "sha256": "13193a29f4eb61d442cac9ccd8deddb67197def96328be28b5db7d99b9b79b5f"
+  },
+  {
+    "path": "archive/local-source/scripts/testing/aggregate-results.js",
+    "sha256": "71c8f231b4051e43d0e63003f17be272c90ffd23a46aadf04586f2b8de8c230d"
+  },
+  {
+    "path": "archive/local-source/scripts/testing/render-benchmark-report.js",
+    "sha256": "979cf91156a38c85ed0f904b8fa65e9a3d07770e33232e2b1f069c08760c3b35"
+  },
+  {
+    "path": "archive/local-source/scripts/testing/collect-test-metadata.js",
+    "sha256": "31507a6394465661eb25f6a3bfd4f019f673ef447fb2418d289728f8961af592"
+  },
+  {
+    "path": "archive/local-source/backend/chat-server/src/test/java/com/smiletogether/chatserver/service/ChatServiceTest.java",
+    "sha256": "ea9375b961b35983b4e71372024b0ed687b5b8a05add441abee6d93f5e6e8b1b"
+  },
+  {
+    "path": "archive/local-source/backend/chat-server/src/test/java/com/smiletogether/chatserver/service/producer/MessageProducerTest.java",
+    "sha256": "76d8366a894db274b6c6f0ff0420d8a16333077e3a4732d807410725bfb4dd5b"
+  },
+  {
+    "path": "archive/local-source/backend/chat-server/src/test/java/com/smiletogether/chatserver/service/consumer/MessageConsumerTest.java",
+    "sha256": "51f85374ea7b0b92486e70fec55dc20687a698d8b32263621c8bfcd9c0793bc8"
+  },
+  {
+    "path": "archive/local-source/tests/load/k6/websocket-chat.js",
+    "sha256": "b3868db858c94a0b7db852a521ba2e376263674fcece67c4d02cb52449100bee"
+  },
+  {
+    "path": "archive/local-source/tests/load/k6/history-read.js",
+    "sha256": "e03575ed5430887a49a3d9b74c6984994e63eafe941b463b51c83c51e91f9d61"
+  },
+  {
+    "path": "archive/local-source/tests/load/k6/notification-flow.js",
+    "sha256": "91d92ee75045decfb65c7233a89a75278974eff9b20f1576622301b3d16af7f6"
+  },
+  {
+    "path": "archive/local-source/tests/load/k6/lib/stomp.js",
+    "sha256": "697df927c48c25a986c18714af3a94ef16a4601b12550aba6bdda4099fdadde4"
+  },
+  {
+    "path": "archive/local-source/tests/load/k6/lib/profiles.js",
+    "sha256": "558802af965fae9a1b83b3199d717f9f7248b016f818d18b064744508ab4afc2"
+  }
+]

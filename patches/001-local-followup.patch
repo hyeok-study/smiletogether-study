@@ -1,0 +1,882 @@
+From cd590af195307a5f4ae16b494b327735a75cdd30 Mon Sep 17 00:00:00 2001
+From: Codex <codex@local.invalid>
+Date: Thu, 15 Oct 2026 03:11:34 +0900
+Subject: [PATCH 1/3] fix: handle channel hash overflow and interrupted history
+ waits
+
+---
+ .../chatserver/config/PartitionConfig.java          |  2 +-
+ .../historyserver/util/KafkaLagChecker.java         | 13 +++++++++----
+ 2 files changed, 10 insertions(+), 5 deletions(-)
+
+diff --git a/backend/chat-server/src/main/java/com/smiletogether/chatserver/config/PartitionConfig.java b/backend/chat-server/src/main/java/com/smiletogether/chatserver/config/PartitionConfig.java
+index 12993ab..2d630f8 100644
+--- a/backend/chat-server/src/main/java/com/smiletogether/chatserver/config/PartitionConfig.java
++++ b/backend/chat-server/src/main/java/com/smiletogether/chatserver/config/PartitionConfig.java
+@@ -17,7 +17,7 @@ public class PartitionConfig implements Partitioner {
+     }
+ 
+     // 채널 ID를 기반으로 특정 파티션을 고정 (음수 방지)
+-    int partition = Math.abs(key.hashCode()) % numPartitions;
++    int partition = (int) (Math.abs((long) key.hashCode()) % numPartitions);
+     return partition;
+   }
+ 
+diff --git a/backend/history-server/src/main/java/com/smiletogether/historyserver/util/KafkaLagChecker.java b/backend/history-server/src/main/java/com/smiletogether/historyserver/util/KafkaLagChecker.java
+index 0b41fd8..a2fbafd 100644
+--- a/backend/history-server/src/main/java/com/smiletogether/historyserver/util/KafkaLagChecker.java
++++ b/backend/history-server/src/main/java/com/smiletogether/historyserver/util/KafkaLagChecker.java
+@@ -27,7 +27,9 @@ public class KafkaLagChecker {
+             long latestOffset = consumer.position(topicPartition);
+ 
+             consumer.seekToBeginning(List.of(topicPartition)); // 커밋된 위치 확인
+-            long committedOffset = consumer.committed(topicPartition).offset();
++            var committed = consumer.committed(topicPartition);
++            if (committed == null) return false;
++            long committedOffset = committed.offset();
+ 
+             log.info("[KafkaLag] channelId={}, partition={}, committed={}, latest={}",
+                     channelId, partition, committedOffset, latestOffset);
+@@ -41,7 +43,7 @@ public class KafkaLagChecker {
+ 
+     private int calculatePartition(String topic, String channelId, Consumer<String, String> consumer) {
+         int partitionCount = consumer.partitionsFor(topic).size();
+-        return Math.abs(channelId.hashCode()) % partitionCount;
++        return (int) (Math.abs((long) channelId.hashCode()) % partitionCount);
+     }
+ 
+     public boolean waitUntilPartitionSynced(String topic, String groupId, String channelId, int maxRetry, long delayMillis) {
+@@ -49,8 +51,11 @@ public class KafkaLagChecker {
+             if (isPartitionUpToDate(topic, groupId, channelId)) return true;
+             try {
+                 Thread.sleep(delayMillis);
+-            } catch (InterruptedException ignored) {}
++            } catch (InterruptedException interrupted) {
++                Thread.currentThread().interrupt();
++                return false;
++            }
+         }
+         return false;
+     }
+-}
+\ No newline at end of file
++}
+-- 
+2.46.0
+
+
+From 273970ebcba70e3d995b80973a2579983a52b77c Mon Sep 17 00:00:00 2001
+From: Codex <codex@local.invalid>
+Date: Thu, 15 Oct 2026 03:12:19 +0900
+Subject: [PATCH 2/3] test: capture channel partition and history failure
+ boundaries
+
+---
+ .../config/PartitionConfigTest.java           | 23 +++++++
+ .../controller/HistoryReadBoundaryTest.java   | 34 ++++++++++
+ .../service/KafkaStorageBoundaryTest.java     | 23 +++++++
+ .../util/KafkaLagCheckerTest.java             | 62 +++++++++++++++++++
+ 4 files changed, 142 insertions(+)
+ create mode 100644 backend/chat-server/src/test/java/com/smiletogether/chatserver/config/PartitionConfigTest.java
+ create mode 100644 backend/history-server/src/test/java/com/smiletogether/historyserver/controller/HistoryReadBoundaryTest.java
+ create mode 100644 backend/history-server/src/test/java/com/smiletogether/historyserver/service/KafkaStorageBoundaryTest.java
+ create mode 100644 backend/history-server/src/test/java/com/smiletogether/historyserver/util/KafkaLagCheckerTest.java
+
+diff --git a/backend/chat-server/src/test/java/com/smiletogether/chatserver/config/PartitionConfigTest.java b/backend/chat-server/src/test/java/com/smiletogether/chatserver/config/PartitionConfigTest.java
+new file mode 100644
+index 0000000..0245918
+--- /dev/null
++++ b/backend/chat-server/src/test/java/com/smiletogether/chatserver/config/PartitionConfigTest.java
+@@ -0,0 +1,23 @@
++package com.smiletogether.chatserver.config;
++import org.junit.jupiter.api.Test;
++import org.apache.kafka.common.Cluster;
++import static org.junit.jupiter.api.Assertions.*;
++import static org.mockito.Mockito.*;
++
++class PartitionConfigTest {
++    @Test void minimumHashIsNonnegative() {
++        Cluster cluster = mock(Cluster.class);
++        when(cluster.partitionCountForTopic("channel-topic")).thenReturn(3);
++        String key = "polygenelubricants";
++        assertEquals(Integer.MIN_VALUE, key.hashCode());
++        assertEquals(2, new PartitionConfig().partition("channel-topic",key,null,null,null,cluster));
++    }
++    @Test void existingKeysKeepTheirOldPlacement() {
++        Cluster cluster = mock(Cluster.class);
++        when(cluster.partitionCountForTopic("channel-topic")).thenReturn(7);
++        for(String key : new String[]{"channel", "abc", "negative-channel", "", "한국어 채널"}) {
++            assertEquals(Math.abs(key.hashCode()) % 7,new PartitionConfig().partition("channel-topic",key,null,null,null,cluster));
++        }
++        assertEquals(0,new PartitionConfig().partition("channel-topic",null,null,null,null,cluster));
++    }
++}
+diff --git a/backend/history-server/src/test/java/com/smiletogether/historyserver/controller/HistoryReadBoundaryTest.java b/backend/history-server/src/test/java/com/smiletogether/historyserver/controller/HistoryReadBoundaryTest.java
+new file mode 100644
+index 0000000..5dab085
+--- /dev/null
++++ b/backend/history-server/src/test/java/com/smiletogether/historyserver/controller/HistoryReadBoundaryTest.java
+@@ -0,0 +1,34 @@
++package com.smiletogether.historyserver.controller;
++import com.smiletogether.historyserver.infrastructure.JwtExtractor;
++import com.smiletogether.historyserver.service.ChannelMessageService;
++import com.smiletogether.historyserver.service.dto.ChannelMessages;
++import com.smiletogether.historyserver.service.dto.request.ChannelMessagesRequest;
++import com.smiletogether.historyserver.util.KafkaLagChecker;
++import org.junit.jupiter.api.Test;
++import org.springframework.mock.web.MockHttpServletRequest;
++import static org.junit.jupiter.api.Assertions.*;
++import static org.mockito.Mockito.*;
++
++class HistoryReadBoundaryTest {
++    @Test void lagBudgetExhaustionStillUsesExistingHistoryQuery() {
++        var service = mock(ChannelMessageService.class);
++        var jwt = mock(JwtExtractor.class);
++        var lag = mock(KafkaLagChecker.class);
++        var request = new MockHttpServletRequest();
++        var options = mock(ChannelMessagesRequest.class);
++        var result = mock(ChannelMessages.class);
++        when(jwt.getToken(request)).thenReturn("controlled-test-token");
++        when(lag.waitUntilPartitionSynced("history-topic","history-server-group","channel",5,100)).thenReturn(false);
++        when(service.getChannelMessages(options,"workspace","channel","controlled-test-token")).thenReturn(result);
++        assertSame(result,new ChannelMessageController(service,jwt,lag).getMessages("workspace","channel",options,request));
++        verify(service).getChannelMessages(options,"workspace","channel","controlled-test-token");
++    }
++    @Test void missingTokenDoesNotWaitOrReadDatabase() {
++        var service = mock(ChannelMessageService.class);
++        var jwt = mock(JwtExtractor.class);
++        var lag = mock(KafkaLagChecker.class);
++        assertThrows(RuntimeException.class,()->new ChannelMessageController(service,jwt,lag)
++                .getMessages("workspace","channel",mock(ChannelMessagesRequest.class),new MockHttpServletRequest()));
++        verifyNoInteractions(lag,service);
++    }
++}
+diff --git a/backend/history-server/src/test/java/com/smiletogether/historyserver/service/KafkaStorageBoundaryTest.java b/backend/history-server/src/test/java/com/smiletogether/historyserver/service/KafkaStorageBoundaryTest.java
+new file mode 100644
+index 0000000..e736da2
+--- /dev/null
++++ b/backend/history-server/src/test/java/com/smiletogether/historyserver/service/KafkaStorageBoundaryTest.java
+@@ -0,0 +1,23 @@
++package com.smiletogether.historyserver.service;
++import com.fasterxml.jackson.databind.ObjectMapper;
++import com.smiletogether.historyserver.service.dto.request.ChannelMessageSaveRequest;
++import org.apache.kafka.clients.consumer.ConsumerRecord;
++import org.junit.jupiter.api.Test;
++import static org.junit.jupiter.api.Assertions.*;
++import static org.mockito.Mockito.*;
++
++class KafkaStorageBoundaryTest {
++    @Test void currentConsumerSwallowsStorageFailureRatherThanSignallingRetry() throws Exception {
++        var mapper = mock(ObjectMapper.class);
++        var service = mock(ChannelMessageService.class);
++        var dto = mock(ChannelMessageSaveRequest.class);
++        String json = "{\"type\":\"SEND\"}";
++        when(mapper.readTree(json)).thenReturn(new ObjectMapper().readTree(json));
++        when(mapper.readValue(json,ChannelMessageSaveRequest.class)).thenReturn(dto);
++        doThrow(new IllegalStateException("controlled DB write failure")).when(service).saveMessage(dto);
++        assertDoesNotThrow(()->new KafkaConsumerService(mapper,service)
++                .consumeChannelMessage(new ConsumerRecord<>("history-topic",0,1,"channel",json)));
++        verify(service).saveMessage(dto);
++        // This proves the current method boundary, not broker offset/DB atomicity.
++    }
++}
+diff --git a/backend/history-server/src/test/java/com/smiletogether/historyserver/util/KafkaLagCheckerTest.java b/backend/history-server/src/test/java/com/smiletogether/historyserver/util/KafkaLagCheckerTest.java
+new file mode 100644
+index 0000000..1a3b160
+--- /dev/null
++++ b/backend/history-server/src/test/java/com/smiletogether/historyserver/util/KafkaLagCheckerTest.java
+@@ -0,0 +1,62 @@
++package com.smiletogether.historyserver.util;
++
++import org.junit.jupiter.api.BeforeEach;
++import org.junit.jupiter.api.Test;
++import org.apache.kafka.clients.consumer.Consumer;
++import org.apache.kafka.clients.consumer.OffsetAndMetadata;
++import org.apache.kafka.common.PartitionInfo;
++import org.apache.kafka.common.TopicPartition;
++import org.springframework.kafka.core.ConsumerFactory;
++import java.util.List;
++import static org.junit.jupiter.api.Assertions.*;
++import static org.mockito.Mockito.*;
++
++class KafkaLagCheckerTest {
++    ConsumerFactory<String,String> factory;
++    Consumer<String,String> consumer;
++    KafkaLagChecker checker;
++    @BeforeEach
++    @SuppressWarnings("unchecked")
++    void setup() {
++        factory = mock(ConsumerFactory.class); consumer = mock(Consumer.class);
++        when(factory.createConsumer("group")).thenReturn(consumer);
++        when(consumer.partitionsFor("history-topic")).thenReturn(List.of(mock(PartitionInfo.class), mock(PartitionInfo.class), mock(PartitionInfo.class)));
++        checker = new KafkaLagChecker(factory);
++    }
++    @Test void minimumHashUsesValidSameLegacyPartition() {
++        String channel = "polygenelubricants";
++        assertEquals(Integer.MIN_VALUE, channel.hashCode());
++        TopicPartition partition = new TopicPartition("history-topic", 2);
++        when(consumer.position(partition)).thenReturn(10L);
++        when(consumer.committed(partition)).thenReturn(new OffsetAndMetadata(10));
++        assertTrue(checker.isPartitionUpToDate("history-topic", "group", channel));
++        verify(consumer).assign(List.of(partition));
++        verify(consumer).close();
++    }
++    @Test void missingCommitReturnsFalseAndClosesConsumer() {
++        when(consumer.position(any())).thenReturn(10L);
++        assertFalse(checker.isPartitionUpToDate("history-topic", "group", "channel"));
++        verify(consumer).close();
++    }
++    @Test void kafkaFailureReturnsFalseAndClosesConsumer() {
++        when(consumer.partitionsFor("history-topic")).thenThrow(new IllegalStateException("controlled outage"));
++        assertFalse(checker.isPartitionUpToDate("history-topic", "group", "channel"));
++        verify(consumer).close();
++    }
++    @Test void exhaustedBudgetChecksOnlyConfiguredAttempts() {
++        KafkaLagChecker controlled = spy(checker);
++        doReturn(false).when(controlled).isPartitionUpToDate(anyString(),anyString(),anyString());
++        assertFalse(controlled.waitUntilPartitionSynced("history-topic","group","channel",5,0));
++        verify(controlled,times(5)).isPartitionUpToDate("history-topic","group","channel");
++    }
++    @Test void interruptionStopsWaitingAndPreservesInterrupt() {
++        KafkaLagChecker controlled = spy(checker);
++        doReturn(false).when(controlled).isPartitionUpToDate(anyString(),anyString(),anyString());
++        try {
++            Thread.currentThread().interrupt();
++            assertFalse(controlled.waitUntilPartitionSynced("history-topic","group","channel",5,100));
++            assertTrue(Thread.currentThread().isInterrupted());
++            verify(controlled,times(1)).isPartitionUpToDate("history-topic","group","channel");
++        } finally { Thread.interrupted(); }
++    }
++}
+-- 
+2.46.0
+
+
+From 255e86da0d5373afc019bc98b25a989fe5713f38 Mon Sep 17 00:00:00 2001
+From: Codex <codex@local.invalid>
+Date: Thu, 15 Oct 2026 11:58:09 +0900
+Subject: [PATCH 3/3] fix: preserve message tombstones and retry Kafka Mongo
+ writes; bound profile calls
+
+---
+ backend/history-server/build.gradle           |  10 +
+ .../HistoryKafkaContainerConfiguration.java   |  28 ++
+ .../HistoryKafkaRetryConfiguration.java       |  15 +
+ .../service/ChannelMessageService.java        |  32 ++-
+ .../service/KafkaConsumerService.java         |   2 +
+ .../KafkaMongoIntegrationTest.java            | 147 ++++++++++
+ .../BaselineChannelMessageService.java        | 263 ++++++++++++++++++
+ .../service/KafkaStorageBoundaryTest.java     |   4 +-
+ 8 files changed, 488 insertions(+), 13 deletions(-)
+ create mode 100644 backend/history-server/src/main/java/com/smiletogether/historyserver/config/HistoryKafkaContainerConfiguration.java
+ create mode 100644 backend/history-server/src/main/java/com/smiletogether/historyserver/config/HistoryKafkaRetryConfiguration.java
+ create mode 100644 backend/history-server/src/test/java/com/smiletogether/historyserver/integration/KafkaMongoIntegrationTest.java
+ create mode 100644 backend/history-server/src/test/java/com/smiletogether/historyserver/service/BaselineChannelMessageService.java
+
+diff --git a/backend/history-server/build.gradle b/backend/history-server/build.gradle
+index 01d9a40..69f84bd 100644
+--- a/backend/history-server/build.gradle
++++ b/backend/history-server/build.gradle
+@@ -53,3 +53,13 @@ dependencies {
+ tasks.named('test') {
+ 	useJUnitPlatform()
+ }
++
++tasks.register('integrationTest', Test) {
++    testClassesDirs = sourceSets.test.output.classesDirs
++    classpath = sourceSets.test.runtimeClasspath
++    useJUnitPlatform()
++    filter { includeTestsMatching '*KafkaMongoIntegrationTest' }
++    systemProperty 'lab.integration', 'true'
++    systemProperty 'lab.phase', System.getProperty('lab.phase', 'before')
++    outputs.upToDateWhen { false }
++}
+diff --git a/backend/history-server/src/main/java/com/smiletogether/historyserver/config/HistoryKafkaContainerConfiguration.java b/backend/history-server/src/main/java/com/smiletogether/historyserver/config/HistoryKafkaContainerConfiguration.java
+new file mode 100644
+index 0000000..6e1afde
+--- /dev/null
++++ b/backend/history-server/src/main/java/com/smiletogether/historyserver/config/HistoryKafkaContainerConfiguration.java
+@@ -0,0 +1,28 @@
++package com.smiletogether.historyserver.config;
++
++import org.apache.kafka.clients.consumer.ConsumerConfig;
++import org.springframework.boot.autoconfigure.kafka.ConcurrentKafkaListenerContainerFactoryConfigurer;
++import org.springframework.context.annotation.Bean;
++import org.springframework.context.annotation.Configuration;
++import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
++import org.springframework.kafka.core.ConsumerFactory;
++import org.springframework.kafka.listener.ContainerProperties;
++import org.springframework.kafka.listener.DefaultErrorHandler;
++import java.util.Map;
++
++@Configuration
++public class HistoryKafkaContainerConfiguration {
++    @Bean
++    public ConcurrentKafkaListenerContainerFactory<Object,Object> kafkaListenerContainerFactory(
++            ConcurrentKafkaListenerContainerFactoryConfigurer configurer,
++            ConsumerFactory<Object,Object> consumerFactory,
++            DefaultErrorHandler historyPersistenceErrorHandler) {
++        consumerFactory.updateConfigs(Map.of(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG,false));
++        var factory=new ConcurrentKafkaListenerContainerFactory<Object,Object>();
++        configurer.configure(factory,consumerFactory);
++        factory.getContainerProperties().setAckMode(ContainerProperties.AckMode.RECORD);
++        factory.setCommonErrorHandler(historyPersistenceErrorHandler);
++        factory.setConcurrency(3);
++        return factory;
++    }
++}
+diff --git a/backend/history-server/src/main/java/com/smiletogether/historyserver/config/HistoryKafkaRetryConfiguration.java b/backend/history-server/src/main/java/com/smiletogether/historyserver/config/HistoryKafkaRetryConfiguration.java
+new file mode 100644
+index 0000000..17b9cdb
+--- /dev/null
++++ b/backend/history-server/src/main/java/com/smiletogether/historyserver/config/HistoryKafkaRetryConfiguration.java
+@@ -0,0 +1,15 @@
++package com.smiletogether.historyserver.config;
++
++import org.springframework.context.annotation.Bean;
++import org.springframework.context.annotation.Configuration;
++import org.springframework.kafka.listener.DefaultErrorHandler;
++import org.springframework.util.backoff.FixedBackOff;
++
++@Configuration
++public class HistoryKafkaRetryConfiguration {
++    @Bean
++    public DefaultErrorHandler historyPersistenceErrorHandler() {
++        // 실패한 partition을 막고 재시도한다. 영구 오류의 DLT/격리 정책은 별도 필요하다.
++        return new DefaultErrorHandler(new FixedBackOff(100, FixedBackOff.UNLIMITED_ATTEMPTS));
++    }
++}
+diff --git a/backend/history-server/src/main/java/com/smiletogether/historyserver/service/ChannelMessageService.java b/backend/history-server/src/main/java/com/smiletogether/historyserver/service/ChannelMessageService.java
+index 8276b2c..f04a8c8 100644
+--- a/backend/history-server/src/main/java/com/smiletogether/historyserver/service/ChannelMessageService.java
++++ b/backend/history-server/src/main/java/com/smiletogether/historyserver/service/ChannelMessageService.java
+@@ -28,6 +28,10 @@ import org.springframework.data.domain.PageRequest;
+ import org.springframework.data.domain.Sort;
+ import org.springframework.data.domain.Sort.Direction;
+ import org.springframework.stereotype.Service;
++import org.springframework.data.mongodb.core.MongoTemplate;
++import org.springframework.data.mongodb.core.query.Query;
++import org.springframework.data.mongodb.core.query.Criteria;
++import org.springframework.data.mongodb.core.query.Update;
+ 
+ @Service
+ @Slf4j
+@@ -37,6 +41,7 @@ public class ChannelMessageService {
+     private final ChannelMessageRepository channelMessageRepository;
+     private final ReactionRepository reactionRepository;
+     private final ExternalProfileApiClient externalProfileApiClient;
++    private final MongoTemplate mongoTemplate;
+ 
+     private ChannelMessageDocument findMessageById(String messageId) {
+         ChannelMessageDocument channelMessageDocument = channelMessageRepository.findById(messageId)
+@@ -69,10 +74,13 @@ public class ChannelMessageService {
+         }
+ 
+         Map<String, List<ChannelMessageResponse>> groupedMessages = new LinkedHashMap<>();
++        // 요청 내 같은 발신자만 재사용한다. 요청/사용자 간 캐시는 공유하지 않는다.
++        Map<String, WorkspaceProfileDto> profiles = new HashMap<>();
+ 
+         for (ChannelMessageDocument messageDoc : channelMessageDocuments) {
+             ChannelMessageResponse messageResponse = ChannelMessageResponse.of(messageDoc,
+-                    getWorkspaceProfile(token, workspaceId, messageDoc.getSenderId()));
++                    profiles.computeIfAbsent(messageDoc.getSenderId(),
++                            sender -> getWorkspaceProfile(token, workspaceId, sender)));
+             String dateKey = formatDate(messageResponse.createdAt());
+ 
+             groupedMessages.computeIfAbsent(dateKey, k -> new ArrayList<>()).add(messageResponse);
+@@ -95,16 +103,18 @@ public class ChannelMessageService {
+     }
+ 
+     public void saveMessage(ChannelMessageSaveRequest channelMessage) {
+-        ChannelMessageDocument newMessage = ChannelMessageDocument.builder()
+-                .id(channelMessage.messageId())
+-                .workspaceId(channelMessage.workspaceId())
+-                .channelId(channelMessage.channelId())
+-                .senderId(channelMessage.user().userId())
+-                .content(channelMessage.content())
+-                .createdAt(channelMessage.createdAt())
+-                .build();
+-
+-        channelMessageRepository.save(newMessage);
++        // At-least-once SEND 재전달이 수정 내용/삭제 tombstone을 되돌리지 않는다.
++        var insert = new Update()
++                .setOnInsert("workspaceId", channelMessage.workspaceId())
++                .setOnInsert("channelId", channelMessage.channelId())
++                .setOnInsert("senderId", channelMessage.user().userId())
++                .setOnInsert("content", channelMessage.content())
++                .setOnInsert("createdAt", channelMessage.createdAt())
++                .setOnInsert("isDeleted", false).setOnInsert("isUpdated", false)
++                .setOnInsert("reactions", List.of()).setOnInsert("isHasThread", false)
++                .setOnInsert("threadCount", 0).setOnInsert("treads", List.of());
++        mongoTemplate.upsert(Query.query(Criteria.where("_id").is(channelMessage.messageId())),
++                insert, ChannelMessageDocument.class);
+     }
+ 
+     public ChannelMessageResponse getChannelMessage(String messageId, String token) {
+diff --git a/backend/history-server/src/main/java/com/smiletogether/historyserver/service/KafkaConsumerService.java b/backend/history-server/src/main/java/com/smiletogether/historyserver/service/KafkaConsumerService.java
+index b86443a..819a6dc 100644
+--- a/backend/history-server/src/main/java/com/smiletogether/historyserver/service/KafkaConsumerService.java
++++ b/backend/history-server/src/main/java/com/smiletogether/historyserver/service/KafkaConsumerService.java
+@@ -58,6 +58,7 @@ public class KafkaConsumerService {
+             }
+         } catch (Exception e) {
+             log.error("Failed to process message: {}", messageJson, e);
++            throw new IllegalStateException("History message persistence failed", e);
+         }
+     }
+ 
+@@ -84,6 +85,7 @@ public class KafkaConsumerService {
+             }
+         } catch (Exception e) {
+             log.error("Failed to process reaction message: {}", messageJson, e);
++            throw new IllegalStateException("Reaction persistence failed", e);
+         }
+     }
+ }
+diff --git a/backend/history-server/src/test/java/com/smiletogether/historyserver/integration/KafkaMongoIntegrationTest.java b/backend/history-server/src/test/java/com/smiletogether/historyserver/integration/KafkaMongoIntegrationTest.java
+new file mode 100644
+index 0000000..6800196
+--- /dev/null
++++ b/backend/history-server/src/test/java/com/smiletogether/historyserver/integration/KafkaMongoIntegrationTest.java
+@@ -0,0 +1,147 @@
++package com.smiletogether.historyserver.integration;
++
++import com.fasterxml.jackson.databind.ObjectMapper;
++import com.fasterxml.jackson.databind.SerializationFeature;
++import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
++import com.mongodb.client.MongoClient;
++import com.mongodb.client.MongoClients;
++import com.smiletogether.historyserver.domain.document.ChannelMessageDocument;
++import com.smiletogether.historyserver.config.HistoryKafkaRetryConfiguration;
++import com.smiletogether.historyserver.config.HistoryKafkaContainerConfiguration;
++import org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration;
++import com.smiletogether.historyserver.infrastructure.ExternalProfileApiClient;
++import com.smiletogether.historyserver.repository.ChannelMessageRepository;
++import com.smiletogether.historyserver.service.ChannelMessageService;
++import com.smiletogether.historyserver.service.KafkaConsumerService;
++import com.smiletogether.historyserver.service.BaselineChannelMessageService;
++import com.smiletogether.historyserver.repository.ReactionRepository;
++import com.smiletogether.historyserver.service.dto.request.ChannelMessagesRequest;
++import com.sun.net.httpserver.HttpServer;
++import org.apache.kafka.clients.admin.*;
++import org.apache.kafka.clients.consumer.ConsumerConfig;
++import org.apache.kafka.clients.producer.*;
++import org.apache.kafka.common.TopicPartition;
++import org.apache.kafka.common.serialization.*;
++import org.bson.Document;
++import org.junit.jupiter.api.*;
++import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
++import org.springframework.context.annotation.*;
++import org.springframework.core.env.MapPropertySource;
++import org.springframework.data.mongodb.MongoDatabaseFactory;
++import org.springframework.data.mongodb.core.*;
++import org.springframework.data.mongodb.repository.config.EnableMongoRepositories;
++import org.springframework.kafka.annotation.EnableKafka;
++import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
++import org.springframework.kafka.config.KafkaListenerEndpointRegistry;
++import org.springframework.kafka.core.*;
++import org.springframework.kafka.listener.*;
++import org.springframework.util.backoff.FixedBackOff;
++import org.springframework.web.client.RestTemplate;
++import java.net.InetSocketAddress;
++import java.nio.file.*;
++import java.nio.charset.StandardCharsets;
++import java.time.*;
++import java.util.*;
++import java.util.concurrent.*;
++import java.util.concurrent.atomic.AtomicInteger;
++import java.util.function.BooleanSupplier;
++import static org.junit.jupiter.api.Assertions.*;
++
++@EnabledIfSystemProperty(named="lab.integration", matches="true")
++@TestInstance(TestInstance.Lifecycle.PER_CLASS)
++@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
++class KafkaMongoIntegrationTest {
++    static final String BOOTSTRAP="127.0.0.1:55192", GROUP="history-server-group";
++    static final String MONGO="mongodb://127.0.0.1:55117/?retryWrites=false&serverSelectionTimeoutMS=1500";
++    AnnotationConfigApplicationContext ctx; MongoTemplate mongo; ChannelMessageRepository repo; ChannelMessageService service;
++    KafkaProducer<String,String> producer; AdminClient admin; HttpServer profile; ExecutorService profileExecutor;
++    AtomicInteger profileCalls=new AtomicInteger();
++    final ObjectMapper json=new ObjectMapper().registerModule(new JavaTimeModule()).disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
++    final Path output=Path.of("/Users/imjanghyeog/Desktop/personal_project/portfolio/output/application-integration-20261015");
++    final String run=UUID.randomUUID().toString();
++    @Configuration @EnableKafka @EnableMongoRepositories(basePackageClasses=ChannelMessageRepository.class)
++    @Import({ChannelMessageService.class,KafkaConsumerService.class,ExternalProfileApiClient.class,HistoryKafkaRetryConfiguration.class,HistoryKafkaContainerConfiguration.class,KafkaAutoConfiguration.class})
++    static class Harness {
++        @Bean MongoClient mongoClient(){return MongoClients.create(MONGO);}
++        @Bean MongoDatabaseFactory mongoDatabaseFactory(MongoClient client){return new SimpleMongoClientDatabaseFactory(client,"smile_regression");}
++        @Bean MongoTemplate mongoTemplate(MongoDatabaseFactory factory){return new MongoTemplate(factory);}
++        @Bean ObjectMapper objectMapper(){return new ObjectMapper().registerModule(new JavaTimeModule()).disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);}
++        @Bean RestTemplate restTemplate(){return new RestTemplate();}
++    }
++    @BeforeAll void setup() throws Exception {
++        Files.createDirectories(output);
++        profile=HttpServer.create(new InetSocketAddress("127.0.0.1",0),0);profileExecutor=Executors.newFixedThreadPool(4);profile.setExecutor(profileExecutor);
++        profile.createContext("/",exchange->{profileCalls.incrementAndGet();try{Thread.sleep(2);}catch(InterruptedException e){Thread.currentThread().interrupt();}byte[] data="{\"userId\":\"fixture\",\"displayName\":\"Fixture\",\"profileImage\":\"\",\"position\":\"test\",\"isActive\":true,\"statusMessage\":\"\"}".getBytes(StandardCharsets.UTF_8);exchange.getResponseHeaders().set("Content-Type","application/json");exchange.getResponseHeaders().set("Connection","close");exchange.sendResponseHeaders(200,data.length);exchange.getResponseBody().write(data);exchange.close();});profile.start();
++        admin=AdminClient.create(Map.of(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG,BOOTSTRAP));
++        for(var topic:List.of(new NewTopic("history-topic",3,(short)1),new NewTopic("channel-message-reaction",1,(short)1))){try{admin.createTopics(List.of(topic)).all().get(15,TimeUnit.SECONDS);}catch(ExecutionException e){if(!(e.getCause() instanceof org.apache.kafka.common.errors.TopicExistsException))throw e;}}
++        ctx=new AnnotationConfigApplicationContext();ctx.getEnvironment().getPropertySources().addFirst(new MapPropertySource("lab",Map.of("external-api.space-server","http://127.0.0.1:"+profile.getAddress().getPort(),"spring.kafka.bootstrap-servers",BOOTSTRAP,"spring.kafka.consumer.auto-offset-reset","earliest")));ctx.register(Harness.class);ctx.refresh();
++        mongo=ctx.getBean(MongoTemplate.class);repo=ctx.getBean(ChannelMessageRepository.class);service=ctx.getBean(ChannelMessageService.class);
++        var properties=new Properties();properties.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG,BOOTSTRAP);properties.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG,StringSerializer.class);properties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG,StringSerializer.class);properties.put(ProducerConfig.ACKS_CONFIG,"all");producer=new KafkaProducer<>(properties);
++        await(15000,()->ctx.getBean(KafkaListenerEndpointRegistry.class).getListenerContainers().stream().allMatch(c->c.getAssignedPartitions()!=null&&!c.getAssignedPartitions().isEmpty()));
++    }
++    RecordMetadata send(String channel,Map<String,Object> data) throws Exception {
++        int partition=(int)(Math.abs((long)channel.hashCode())%3);
++        return producer.send(new ProducerRecord<>("history-topic",partition,channel,json.writeValueAsString(data))).get(10,TimeUnit.SECONDS);
++    }
++    Map<String,Object> event(String channel,String id,int sender) {
++        return new LinkedHashMap<>(Map.of("type","SEND","messageId",id,"workspaceId","lab","channelId",channel,"user",Map.of("userId","sender-"+sender,"displayName","Fixture","profileImage","","position","test","isActive",true,"statusMessage",""),"content","integration fixture","token","test-only","createdAt",LocalDateTime.now().minusSeconds(1)));
++    }
++    void await(long millis,BooleanSupplier condition) throws Exception {long end=System.nanoTime()+TimeUnit.MILLISECONDS.toNanos(millis);while(System.nanoTime()<end){if(condition.getAsBoolean())return;Thread.sleep(20);}assertTrue(condition.getAsBoolean(),"condition timed out");}
++    long committed(RecordMetadata record) {try {var o=admin.listConsumerGroupOffsets(GROUP).partitionsToOffsetAndMetadata().get(2,TimeUnit.SECONDS).get(new TopicPartition(record.topic(),record.partition()));return o==null?-1:o.offset();}catch(Exception e){return -1;}}
++    @Test @Order(1) void sendUpdateDeleteAndDuplicateSendDoNotResurrectMessage() throws Exception {
++        String channel="sequence-"+run,id="sequence-message-"+run;
++        var initial=event(channel,id,0);send(channel,initial);await(10000,()->repo.findById(id).isPresent());
++        send(channel,Map.of("type","UPDATE","messageId",id,"content","edited","updatedAt",LocalDateTime.now()));await(10000,()->repo.findById(id).map(d->"edited".equals(d.getContent())).orElse(false));
++        send(channel,Map.of("type","DELETE","messageId",id));await(10000,()->repo.findById(id).map(ChannelMessageDocument::isDeleted).orElse(false));
++        var last=send(channel,initial);await(10000,()->committed(last)>last.offset());
++        assertTrue(repo.findById(id).orElseThrow().isDeleted(),"duplicate SEND must not revive tombstone");
++        assertEquals("edited",repo.findById(id).orElseThrow().getContent());
++    }
++    @Test @Order(2) void realMongoWriteFailuresAreRetriedBeforeSuccessfulCommit() throws Exception {
++        String id="recovery-"+run,channel="recovery-"+run;
++        var client=ctx.getBean(MongoClient.class);
++        client.getDatabase("admin").runCommand(Document.parse("{configureFailPoint:'failCommand',mode:{times:2},data:{failCommands:['update','insert'],errorCode:121}}"));
++        try {
++            var record=send(channel,event(channel,id,0));await(10000,()->repo.findById(id).isPresent());await(10000,()->committed(record)>record.offset());
++            Files.writeString(output.resolve("recovery-"+System.getProperty("lab.phase")+".json"),json.writeValueAsString(Map.of("messageId",id,"injectedMongoFailures",2,"mongoExists",true,"recordOffset",record.offset(),"committedOffset",committed(record))));
++        } finally {client.getDatabase("admin").runCommand(Document.parse("{configureFailPoint:'failCommand',mode:'off'}"));}
++    }
++    @Test @Order(3) void measuredHistoryQueriesWithRealKafkaAndMongo() throws Exception {
++        String channel="benchmark-"+run;RecordMetadata last=null;
++        for(int i=0;i<20;i++)last=send(channel,event(channel,"benchmark-"+run+"-"+i,i%4));
++        final var finalRecord=last;await(15000,()->committed(finalRecord)>finalRecord.offset());
++        var options=new ChannelMessagesRequest(LocalDateTime.now().plusDays(1));
++        for(int i=0;i<5;i++)service.getChannelMessages(options,"lab",channel,"test-only");
++        var rounds=new ArrayList<Map<String,Object>>();
++        for(int round=0;round<5;round++){profileCalls.set(0);var samples=new ArrayList<Double>();for(int i=0;i<20;i++){long start=System.nanoTime();service.getChannelMessages(options,"lab",channel,"test-only");samples.add((System.nanoTime()-start)/1e6);}rounds.add(Map.of("round",round+1,"samplesMs",samples,"profileHttpCalls",profileCalls.get()));}
++        Files.writeString(output.resolve("benchmark-"+System.getProperty("lab.phase")+".json"),json.writerWithDefaultPrettyPrinter().writeValueAsString(Map.of("phase",System.getProperty("lab.phase"),"messagesPerQuery",20,"uniqueSenders",4,"warmupQueries",5,"queriesPerRound",20,"roundCount",5,"profileFixtureDelayMs",2,"realKafka",true,"realMongo",true,"rounds",rounds)));
++    }
++    @Test @Order(4) void pairedBaselineAndOptimizedQueriesUseSameDatabaseAndRuntime() throws Exception {
++        String channel="paired-"+run;RecordMetadata last=null;
++        for(int i=0;i<20;i++)last=send(channel,event(channel,"paired-"+run+"-"+i,i%4));
++        final var finalRecord=last;await(15000,()->committed(finalRecord)>finalRecord.offset());
++        var baseline=new BaselineChannelMessageService(repo,ctx.getBean(ReactionRepository.class),ctx.getBean(ExternalProfileApiClient.class));
++        var options=new ChannelMessagesRequest(LocalDateTime.now().plusDays(1));
++        assertEquals(json.valueToTree(baseline.getChannelMessages(options,"lab",channel,"test-only")),json.valueToTree(service.getChannelMessages(options,"lab",channel,"test-only")));
++        for(int i=0;i<5;i++){baseline.getChannelMessages(options,"lab",channel,"test-only");service.getChannelMessages(options,"lab",channel,"test-only");}
++        var rounds=new ArrayList<Map<String,Object>>();
++        for(int round=0;round<5;round++){
++            for(String variant:round%2==0?List.of("baseline","optimized"):List.of("optimized","baseline")){
++                profileCalls.set(0);var samples=new ArrayList<Double>();
++                for(int i=0;i<20;i++){
++                    long start=System.nanoTime();
++                    var response=variant.equals("baseline")?baseline.getChannelMessages(options,"lab",channel,"test-only"):service.getChannelMessages(options,"lab",channel,"test-only");
++                    samples.add((System.nanoTime()-start)/1e6);
++                    assertEquals(20,response.groupedMessages().values().stream().mapToInt(List::size).sum());
++                }
++                int calls=profileCalls.get();assertEquals(variant.equals("baseline")?400:80,calls);
++                rounds.add(Map.of("round",round+1,"variant",variant,"samplesMs",samples,"profileHttpCalls",calls));
++            }
++        }
++        var metadata=new LinkedHashMap<String,Object>();
++        metadata.put("baselineSourceCommit","273970e");metadata.put("comparison","alternating baseline/optimized in same process against same Mongo documents");
++        metadata.put("messagesPerQuery",20);metadata.put("uniqueSenders",4);metadata.put("warmupQueriesPerVariant",5);metadata.put("queriesPerRound",20);metadata.put("roundCount",5);metadata.put("profileFixtureDelayMs",2);metadata.put("realKafka",true);metadata.put("realMongo",true);metadata.put("rounds",rounds);
++        Files.writeString(output.resolve("benchmark-controlled.json"),json.writerWithDefaultPrettyPrinter().writeValueAsString(metadata));
++    }
++    @AfterAll void close(){if(producer!=null)producer.close();if(ctx!=null)ctx.close();if(admin!=null)admin.close();if(profile!=null)profile.stop(0);if(profileExecutor!=null)profileExecutor.shutdownNow();}
++}
+diff --git a/backend/history-server/src/test/java/com/smiletogether/historyserver/service/BaselineChannelMessageService.java b/backend/history-server/src/test/java/com/smiletogether/historyserver/service/BaselineChannelMessageService.java
+new file mode 100644
+index 0000000..a770d08
+--- /dev/null
++++ b/backend/history-server/src/test/java/com/smiletogether/historyserver/service/BaselineChannelMessageService.java
+@@ -0,0 +1,263 @@
++package com.smiletogether.historyserver.service;
++
++import com.smiletogether.historyserver.domain.document.ChannelMessageDocument;
++import com.smiletogether.historyserver.domain.document.ReactionDocument;
++import com.smiletogether.historyserver.domain.model.Reactions;
++import com.smiletogether.historyserver.infrastructure.ExternalProfileApiClient;
++import com.smiletogether.historyserver.repository.ChannelMessageRepository;
++import com.smiletogether.historyserver.repository.ReactionRepository;
++import com.smiletogether.historyserver.service.dto.ChannelMessageReaction;
++import com.smiletogether.historyserver.service.dto.ChannelMessages;
++import com.smiletogether.historyserver.service.dto.WorkspaceProfileDto;
++import com.smiletogether.historyserver.service.dto.request.ChannelMessageDeleteRequest;
++import com.smiletogether.historyserver.service.dto.request.ChannelMessageSaveRequest;
++import com.smiletogether.historyserver.service.dto.request.ChannelMessageUpdateRequest;
++import com.smiletogether.historyserver.service.dto.request.ChannelMessagesRequest;
++import com.smiletogether.historyserver.service.dto.response.ChannelMessageResponse;
++import java.time.LocalDateTime;
++import java.util.ArrayList;
++import java.util.Comparator;
++import java.util.HashMap;
++import java.util.LinkedHashMap;
++import java.util.List;
++import java.util.Map;
++import java.util.stream.Collectors;
++import org.springframework.data.domain.PageRequest;
++import org.springframework.data.domain.Sort;
++import org.springframework.data.domain.Sort.Direction;
++import org.springframework.stereotype.Service;
++
++public class BaselineChannelMessageService {
++    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(BaselineChannelMessageService.class);
++    public BaselineChannelMessageService(ChannelMessageRepository messages, ReactionRepository reactions, ExternalProfileApiClient profiles) { this.channelMessageRepository=messages; this.reactionRepository=reactions; this.externalProfileApiClient=profiles; }
++
++    private final ChannelMessageRepository channelMessageRepository;
++    private final ReactionRepository reactionRepository;
++    private final ExternalProfileApiClient externalProfileApiClient;
++
++    private ChannelMessageDocument findMessageById(String messageId) {
++        ChannelMessageDocument channelMessageDocument = channelMessageRepository.findById(messageId)
++                .orElseThrow(() -> new RuntimeException("메세지를 찾을 수 없습니다."));
++        return channelMessageDocument;
++    }
++
++    private ReactionDocument findReactionById(String messageId, String emoji, String memberId) {
++        ReactionDocument reactionDocument = reactionRepository.findByMessageIdAndEmojiAndMemberId(messageId, emoji,
++                        memberId)
++                .orElseThrow(() -> new RuntimeException("리액션을 찾을 수 없습니다."));
++        return reactionDocument;
++    }
++
++    public ChannelMessages getChannelMessages(ChannelMessagesRequest channelMessagesRequest, String workspaceId,
++                                              String channelId, String token) {
++        log.info("📌 요청받은 afterTime: {}", channelMessagesRequest.lastTimeStamp());
++
++        LocalDateTime afterTime = channelMessagesRequest.lastTimeStamp();
++        log.info("📌 변환된 afterTime (LocalDateTime): {}", afterTime);
++
++        List<ChannelMessageDocument> channelMessageDocuments = channelMessageRepository.findByWorkspaceIdAndChannelIdAndIsDeletedAndCreatedAtBefore(
++                workspaceId, channelId, false, afterTime, PageRequest.of(0, 20, Sort.by(Direction.DESC, "createdAt"))
++        );
++
++        log.info("📌 검색된 메시지 개수: {}", channelMessageDocuments.size());
++
++        if (channelMessageDocuments.isEmpty()) {
++            log.warn("❌ 메시지를 찾을 수 없음.");
++        }
++
++        Map<String, List<ChannelMessageResponse>> groupedMessages = new LinkedHashMap<>();
++
++        for (ChannelMessageDocument messageDoc : channelMessageDocuments) {
++            ChannelMessageResponse messageResponse = ChannelMessageResponse.of(messageDoc,
++                    getWorkspaceProfile(token, workspaceId, messageDoc.getSenderId()));
++            String dateKey = formatDate(messageResponse.createdAt());
++
++            groupedMessages.computeIfAbsent(dateKey, k -> new ArrayList<>()).add(messageResponse);
++        }
++
++        // 날짜 순서대로 그룹화된 메시지를 정렬 (날짜별로 오래된 순서 유지)
++        Map<String, List<ChannelMessageResponse>> reversedGroupedMessages = new LinkedHashMap<>();
++        groupedMessages.entrySet().stream()
++                .sorted(Map.Entry.<String, List<ChannelMessageResponse>>comparingByKey()) // 날짜 오름차순 정렬
++                .forEachOrdered(entry -> {
++                    // 각 날짜별 메시지를 createdAt 기준으로 오름차순 정렬
++                    List<ChannelMessageResponse> sortedMessages = entry.getValue().stream()
++                            .sorted(Comparator.comparing(ChannelMessageResponse::createdAt)) // 오래된 순 정렬
++                            .collect(Collectors.toList());
++
++                    reversedGroupedMessages.put(entry.getKey(), sortedMessages);
++                });
++
++        return new ChannelMessages(channelId, reversedGroupedMessages);
++    }
++
++    public void saveMessage(ChannelMessageSaveRequest channelMessage) {
++        ChannelMessageDocument newMessage = ChannelMessageDocument.builder()
++                .id(channelMessage.messageId())
++                .workspaceId(channelMessage.workspaceId())
++                .channelId(channelMessage.channelId())
++                .senderId(channelMessage.user().userId())
++                .content(channelMessage.content())
++                .createdAt(channelMessage.createdAt())
++                .build();
++
++        channelMessageRepository.save(newMessage);
++    }
++
++    public ChannelMessageResponse getChannelMessage(String messageId, String token) {
++        ChannelMessageDocument channelMessageDocument = findMessageById(messageId);
++        return ChannelMessageResponse.of(channelMessageDocument,
++                getWorkspaceProfile(token, channelMessageDocument.getWorkspaceId(),
++                        channelMessageDocument.getChannelId()));
++    }
++
++    public void updateChannelMessage(ChannelMessageUpdateRequest channelMessageUpdateRequest) {
++        ChannelMessageDocument channelMessageDocument = findMessageById(channelMessageUpdateRequest.messageId());
++        channelMessageDocument = ChannelMessageDocument.builder()
++                .id(channelMessageDocument.getId())
++                .senderId(channelMessageDocument.getSenderId())
++                .workspaceId(channelMessageDocument.getWorkspaceId())
++                .channelId(channelMessageDocument.getChannelId())
++                .content(channelMessageUpdateRequest.content())
++                .isDeleted(false)
++                .isUpdated(true)
++                .createdAt(channelMessageDocument.getCreatedAt())
++                .updatedAt(channelMessageUpdateRequest.updatedAt())
++                .reactions(channelMessageDocument.getReactions())
++                .isHasThread(channelMessageDocument.isHasThread())
++                .threadCount(channelMessageDocument.getThreadCount())
++                .treads(channelMessageDocument.getTreads())
++                .build();
++
++        channelMessageRepository.save(channelMessageDocument);
++    }
++
++    public void deleteChannelMessage(ChannelMessageDeleteRequest channelMessageDeleteRequest) {
++        ChannelMessageDocument channelMessageDocument = findMessageById(channelMessageDeleteRequest.messageId());
++
++        ChannelMessageDocument updatedMessage = ChannelMessageDocument.builder()
++                .id(channelMessageDocument.getId())  // 기존 ID 유지
++                .senderId(channelMessageDocument.getSenderId())
++                .workspaceId(channelMessageDocument.getWorkspaceId())
++                .channelId(channelMessageDocument.getChannelId())
++                .content(channelMessageDocument.getContent())
++                .isDeleted(true)
++                .isUpdated(channelMessageDocument.isUpdated())
++                .createdAt(channelMessageDocument.getCreatedAt())
++                .updatedAt(LocalDateTime.now())  // ✅ 업데이트 시간 반영
++                .reactions(channelMessageDocument.getReactions())
++                .isHasThread(channelMessageDocument.isHasThread())
++                .threadCount(channelMessageDocument.getThreadCount())
++                .treads(channelMessageDocument.getTreads())
++                .build();
++
++        // ✅ ID가 동일하기 때문에 MongoDB에서 기존 Document를 덮어쓰기 함
++        channelMessageRepository.save(updatedMessage);
++    }
++
++    // "YYYY-MM-DD" 포맷으로 변환
++    private String formatDate(LocalDateTime timestamp) {
++        return timestamp.toLocalDate().toString();
++    }
++
++    public void createChannelMessageReaction(ChannelMessageReaction channelMessageReaction) {
++        ReactionDocument reactionDocument = ReactionDocument.builder()
++                .messageId(channelMessageReaction.messageId())
++                .memberId(channelMessageReaction.memberId())
++                .emoji(channelMessageReaction.emoji())
++                .build();
++
++        reactionRepository.save(reactionDocument);
++
++        List<ReactionDocument> messageOfReactions = reactionRepository.findAllByMessageId(channelMessageReaction.messageId());
++
++        Map<String, List<String>> emojiToUsersMap = new HashMap<>();
++
++        for (ReactionDocument reaction : messageOfReactions) {
++            String reactionEmoji = reaction.getEmoji();
++            String user = reaction.getMemberId();
++
++            if (!emojiToUsersMap.containsKey(reactionEmoji)) {
++                emojiToUsersMap.put(reactionEmoji, new ArrayList<>());
++            }
++
++            emojiToUsersMap.get(reactionEmoji).add(user);
++        }
++
++        List<Reactions> updatedReactions = new ArrayList<>();
++
++        for (Map.Entry<String, List<String>> entry : emojiToUsersMap.entrySet()) {
++            String reactionEmoji = entry.getKey();
++            List<String> users = entry.getValue();
++            int count = users.size();
++
++            updatedReactions.add(new Reactions(reactionEmoji, count, users));
++        }
++        ChannelMessageDocument channelMessageDocument = findMessageById(channelMessageReaction.messageId());
++        channelMessageDocument = ChannelMessageDocument.builder()
++                .id(channelMessageDocument.getId())
++                .senderId(channelMessageDocument.getSenderId())
++                .workspaceId(channelMessageDocument.getWorkspaceId())
++                .channelId(channelMessageDocument.getChannelId())
++                .content(channelMessageDocument.getContent())
++                .isDeleted(false)
++                .isUpdated(channelMessageDocument.isUpdated())
++                .createdAt(channelMessageDocument.getCreatedAt())
++                .updatedAt(channelMessageDocument.getUpdatedAt())
++                .reactions(updatedReactions)
++                .isHasThread(channelMessageDocument.isHasThread())
++                .threadCount(channelMessageDocument.getThreadCount())
++                .treads(channelMessageDocument.getTreads())
++                .build();
++
++        channelMessageRepository.save(channelMessageDocument);
++    }
++
++    public void deleteChannelMessageReaction(ChannelMessageReaction channelMessageReaction) {
++
++        ReactionDocument reactionDocument = findReactionById(channelMessageReaction.messageId(),channelMessageReaction.emoji(), channelMessageReaction.memberId());
++        reactionRepository.delete(reactionDocument);
++
++        ChannelMessageDocument channelMessageDocument = findMessageById(channelMessageReaction.messageId());
++
++        List<Reactions> reactions = channelMessageDocument.getReactions();
++        List<Reactions> deletedReactions = new ArrayList<>();
++
++        for (Reactions reaction : reactions) {
++            if (reaction.getEmoji().equals(channelMessageReaction.emoji())) {
++                List<String> updatedUsers = new ArrayList<>(reaction.getUsers());
++                updatedUsers.remove(channelMessageReaction.messageId());
++
++                if (!updatedUsers.isEmpty()) {
++                    deletedReactions.add(
++                            new Reactions(reaction.getEmoji(), updatedUsers.size(), updatedUsers)
++                    );
++                }
++            } else {
++                deletedReactions.add(reaction);
++            }
++        }
++
++        channelMessageDocument = ChannelMessageDocument.builder()
++                .id(channelMessageDocument.getId())
++                .senderId(channelMessageDocument.getSenderId())
++                .workspaceId(channelMessageDocument.getWorkspaceId())
++                .channelId(channelMessageDocument.getChannelId())
++                .content(channelMessageDocument.getContent())
++                .isDeleted(false)
++                .isUpdated(channelMessageDocument.isUpdated())
++                .createdAt(channelMessageDocument.getCreatedAt())
++                .updatedAt(channelMessageDocument.getUpdatedAt())
++                .reactions(deletedReactions)
++                .isHasThread(channelMessageDocument.isHasThread())
++                .threadCount(channelMessageDocument.getThreadCount())
++                .treads(channelMessageDocument.getTreads())
++                .build();
++
++        channelMessageRepository.save(channelMessageDocument);
++    }
++
++    private WorkspaceProfileDto getWorkspaceProfile(String token, String workspaceId, String memberId) {
++        return externalProfileApiClient.getWorkspaceProfile(token, workspaceId, memberId);
++    }
++}
+diff --git a/backend/history-server/src/test/java/com/smiletogether/historyserver/service/KafkaStorageBoundaryTest.java b/backend/history-server/src/test/java/com/smiletogether/historyserver/service/KafkaStorageBoundaryTest.java
+index e736da2..d8d16d2 100644
+--- a/backend/history-server/src/test/java/com/smiletogether/historyserver/service/KafkaStorageBoundaryTest.java
++++ b/backend/history-server/src/test/java/com/smiletogether/historyserver/service/KafkaStorageBoundaryTest.java
+@@ -7,7 +7,7 @@ import static org.junit.jupiter.api.Assertions.*;
+ import static org.mockito.Mockito.*;
+ 
+ class KafkaStorageBoundaryTest {
+-    @Test void currentConsumerSwallowsStorageFailureRatherThanSignallingRetry() throws Exception {
++    @Test void consumerPropagatesStorageFailureToContainerRetryHandler() throws Exception {
+         var mapper = mock(ObjectMapper.class);
+         var service = mock(ChannelMessageService.class);
+         var dto = mock(ChannelMessageSaveRequest.class);
+@@ -15,7 +15,7 @@ class KafkaStorageBoundaryTest {
+         when(mapper.readTree(json)).thenReturn(new ObjectMapper().readTree(json));
+         when(mapper.readValue(json,ChannelMessageSaveRequest.class)).thenReturn(dto);
+         doThrow(new IllegalStateException("controlled DB write failure")).when(service).saveMessage(dto);
+-        assertDoesNotThrow(()->new KafkaConsumerService(mapper,service)
++        assertThrows(IllegalStateException.class,()->new KafkaConsumerService(mapper,service)
+                 .consumeChannelMessage(new ConsumerRecord<>("history-topic",0,1,"channel",json)));
+         verify(service).saveMessage(dto);
+         // This proves the current method boundary, not broker offset/DB atomicity.
+-- 
+2.46.0
+

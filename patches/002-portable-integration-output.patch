@@ -1,0 +1,11 @@
+--- a/backend/history-server/src/test/java/com/smiletogether/historyserver/integration/KafkaMongoIntegrationTest.java
++++ b/backend/history-server/src/test/java/com/smiletogether/historyserver/integration/KafkaMongoIntegrationTest.java
+@@ -57,7 +57,7 @@
+     KafkaProducer<String,String> producer; AdminClient admin; HttpServer profile; ExecutorService profileExecutor;
+     AtomicInteger profileCalls=new AtomicInteger();
+     final ObjectMapper json=new ObjectMapper().registerModule(new JavaTimeModule()).disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+-    final Path output=Path.of("/Users/imjanghyeog/Desktop/personal_project/portfolio/output/application-integration-20261015");
++    final Path output=Path.of(System.getProperty("lab.output", "build/lab-results"));
+     final String run=UUID.randomUUID().toString();
+     @Configuration @EnableKafka @EnableMongoRepositories(basePackageClasses=ChannelMessageRepository.class)
+     @Import({ChannelMessageService.class,KafkaConsumerService.class,ExternalProfileApiClient.class,HistoryKafkaRetryConfiguration.class,HistoryKafkaContainerConfiguration.class,KafkaAutoConfiguration.class})
