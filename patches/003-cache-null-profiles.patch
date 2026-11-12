@@ -1,0 +1,17 @@
+--- a/backend/history-server/src/main/java/com/smiletogether/historyserver/service/ChannelMessageService.java
++++ b/backend/history-server/src/main/java/com/smiletogether/historyserver/service/ChannelMessageService.java
+@@ -78,9 +78,11 @@
+         Map<String, WorkspaceProfileDto> profiles = new HashMap<>();
+ 
+         for (ChannelMessageDocument messageDoc : channelMessageDocuments) {
+-            ChannelMessageResponse messageResponse = ChannelMessageResponse.of(messageDoc,
+-                    profiles.computeIfAbsent(messageDoc.getSenderId(),
+-                            sender -> getWorkspaceProfile(token, workspaceId, sender)));
++            String senderId = messageDoc.getSenderId();
++            if (!profiles.containsKey(senderId)) {
++                profiles.put(senderId, getWorkspaceProfile(token, workspaceId, senderId));
++            }
++            ChannelMessageResponse messageResponse = ChannelMessageResponse.of(messageDoc, profiles.get(senderId));
+             String dateKey = formatDate(messageResponse.createdAt());
+ 
+             groupedMessages.computeIfAbsent(dateKey, k -> new ArrayList<>()).add(messageResponse);

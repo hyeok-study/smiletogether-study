@@ -4,8 +4,16 @@
     "sha256": "67686e816933f4fa2929d1be172b87675f56c48c873affa363d1a1aff2d23f07"
   },
   {
+    "path": "patches/003-cache-null-profiles.patch",
+    "sha256": "2a84e4691770e54dc871fbaae82cf4e84def488fc6bc4bc428ae1a986ea4df82"
+  },
+  {
     "path": "patches/001-local-followup.patch",
     "sha256": "a0f2c44a98e7aa90eb0bf0ad37413426ea6b2193a01ddc9cb4fd420bf136c7e9"
+  },
+  {
+    "path": "overlay/backend/history-server/src/test/java/com/smiletogether/historyserver/service/ChannelMessageServiceTest.java",
+    "sha256": "7f397bfc1080517ba4cab4a4343b4064337f984710434ea627c4b51bb7856345"
   },
   {
     "path": "archive/local-source/scripts/testing/compare-results.js",

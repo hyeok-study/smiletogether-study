@@ -1,0 +1,28 @@
+{
+  "scope": "history query METHOD against real local Mongo and synthetic HTTP profile, not deployed API latency",
+  "comparison": "uncached message-by-message lookup vs request-local cached lookup; not computeIfAbsent vs containsKey latency",
+  "conditions": {
+    "messagesPerQuery": 20,
+    "uniqueSenders": 4,
+    "warmupQueriesPerVariant": 5,
+    "queriesPerRound": 20,
+    "roundCount": 5,
+    "profileFixtureDelayMs": 2
+  },
+  "statistics": {
+    "baseline": {
+      "samples": 100,
+      "profile_calls": 2000,
+      "mean_ms": 64.02476045,
+      "p50_ms": 62.18662500000001,
+      "p95_ms": 74.57825
+    },
+    "optimized": {
+      "samples": 100,
+      "profile_calls": 400,
+      "mean_ms": 15.22432247,
+      "p50_ms": 14.8291875,
+      "p95_ms": 18.270042
+    }
+  }
+}
